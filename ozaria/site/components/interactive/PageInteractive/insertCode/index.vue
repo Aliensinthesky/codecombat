@@ -105,6 +105,7 @@
       },
 
       updateHighlightedLine () {
+        // FIXME: This method doesn't seem to work at all. Line style is not applied.
         if (!this.codemirrorReady) {
           return
         }

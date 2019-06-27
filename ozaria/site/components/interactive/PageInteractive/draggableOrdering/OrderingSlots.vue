@@ -1,59 +1,27 @@
 <script>
-  import BaseDraggableSlot from '../common/BaseDraggableSlot'
 
   export default {
-    components: {
-      'base-draggable-slot': BaseDraggableSlot
-    },
-
     props: {
-      draggableGroup: {
-        type: String,
-        required: true
-      },
-
-      value: {
-        type: Array,
-        default: () => ([])
-      },
-
       labels: {
         type: Array,
         default: () => ([])
       }
     },
-
-    data () {
-      return {
-        slotData: this.value
-      }
-    },
-
-    methods: {
-      changed () {
-        this.$emit(
-          'input',
-          this.slotData.map(s => s[0])
-        )
-      }
-    }
   }
 </script>
 
 <template>
   <div class="ordering-slots-container">
-    <base-draggable-slot
-      v-for="(slot, i) in slotData"
-      :key="i"
+    <ul
+      v-for="label in labels"
+      :key="label"
 
-      v-model="slotData[i]"
-      :draggable-group="draggableGroup"
       class="draggable-slot"
 
-      :label-text="labels[i] || ''"
-
       @change="changed"
-    />
+    >
+      <li>{{ label.text }}</li>
+    </ul>
   </div>
 </template>
 
@@ -66,14 +34,12 @@
     justify-content: space-evenly;
     /deep/ .draggable-slot {
       height: 55px;
-      border: 1px solid black;
+      background-color: #dddddd;
       padding: 0;
       width: 100%;
-      ul {
-        width: 100%;
-        li {
-          text-align: center;
-        }
+      display: flex;
+      li {
+        margin: 0 auto;
       }
     }
   }

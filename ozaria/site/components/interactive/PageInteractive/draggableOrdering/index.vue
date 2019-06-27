@@ -39,9 +39,6 @@
             id: elementId,
             text
           })),
-
-        // FIXME ANDREW THESE SHOULD HAVE LABELS OF ANSWER
-        answerSlots: (new Array(4)).fill(undefined)
       }
     },
 
@@ -73,11 +70,8 @@
       </div>
 
       <ordering-slots
-        v-model="answerSlots"
-
-        :draggable-group="draggableGroup"
-
         class="ordering-column"
+
         :labels="localizedInteractiveConfig.labels"
       />
 
