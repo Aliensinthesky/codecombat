@@ -1,18 +1,20 @@
 <script>
-  import draggable from 'vuedraggable'
-
   import StatementSlot from '../common/BaseDraggableSlot'
   import BaseInteractiveTitle from '../common/BaseInteractiveTitle'
 
   export default {
     components: {
-      'draggable': draggable,
       'base-interactive-title': BaseInteractiveTitle,
       'statement-slot': StatementSlot
     },
 
     props: {
       interactive: {
+        type: Object,
+        required: true
+      },
+
+      localizedInteractiveConfig: {
         type: Object,
         required: true
       },
@@ -28,25 +30,23 @@
     },
 
     data () {
+      const interactiveConfig = this.localizedInteractiveConfig || {}
       return {
         draggableGroup: Math.random().toString(),
 
-        slotOptions: [
-          {
-            id: 1,
-            text: 'Answer One'
-          },
-          {
-            id: 2,
-            text: 'Answer Two'
-          },
-          {
-            id: 3,
-            text: 'Answer Three'
-          }
-        ],
+        slotOptions: (interactiveConfig.elements || [])
+          .map(({ elementId, text }) => ({
+            id: elementId,
+            text
+          })),
 
         answerSlots: Array(3).fill(undefined)
+      }
+    },
+
+    computed: {
+      answerSlotLabels () {
+        return (this.localizedInteractiveConfig || {}).labels || []
       }
     }
   }
@@ -62,7 +62,7 @@
       <div class="answer-bank">
         <statement-slot
           v-for="(slot, i) of slotOptions"
-          :key="slot.id"
+          :key="i"
 
           v-model="slotOptions[i]"
 
@@ -87,6 +87,7 @@
         :draggable-group="draggableGroup"
 
         class="slot"
+        :label-text="answerSlotLabels[i] || ''"
       />
     </div>
   </div>
@@ -102,57 +103,42 @@
 
   .prompt-row {
     display: flex;
-    flex-direction: row;
-
     max-height: 700px;
-
     .art-container {
       flex-grow: 1;
-
       padding: 15px;
       padding-top: 0px;
-
       text-align: center;
-
       img {
         max-height: 100%;
         max-width: 100%;
       }
     }
   }
-
   /deep/ .slot {
     height: 35px;
-
     border: 1px solid black;
-
     &.empty {
       border: 1px dashed grey;
     }
-
     ul {
       li {
         display: flex;
         justify-content: center;
         align-items: center;
-
         font-weight: bold;
         font-size: 15px;
       }
     }
   }
-
   .answer-bank {
     width: 30%;
   }
-
   .answer-row {
     display: flex;
     flex-direction: row;
-
     align-items: center;
     justify-content: space-evenly;
-
     .slot {
       width: 25%;
     }

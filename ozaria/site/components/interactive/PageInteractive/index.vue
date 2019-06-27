@@ -1,5 +1,7 @@
 <script>
-  import { getInteractive, getSession } from '../../../api/interactive'
+  import { merge } from 'lodash'
+  import { mapGetters, mapActions } from 'vuex'
+
   import draggableOrderingComponent from './draggableOrdering/index'
   import insertCodeComponent from './insertCode/index'
   import draggableStatementCompletionComponent from './draggableStatementCompletion/index'
@@ -33,8 +35,46 @@
     }),
 
     computed: {
+      ...mapGetters('interactives', [
+        'currentInteractiveDataLoading',
+        'currentInteractive',
+        'currentInteractiveSession'
+      ]),
+
+      interactiveConfig () {
+        switch (this.currentInteractive.interactiveType) {
+        case 'draggable-statement-completion':
+          return this.currentInteractive.draggableStatementCompletionData
+        case 'insert-code':
+          return this.currentInteractive.insertCodeData
+        case 'draggable-ordering':
+          return this.currentInteractive.draggableOrderingData
+        default:
+          // TODO handle_error_ozaria
+          noty({ text: 'Interactive type is not set for the interactive', type: 'error', timeout: '2000' })
+          throw new Error('Invalid interactive type provided for interactive')
+        }
+      },
+
+      localizedInteractiveConfig () {
+        const interactiveConfigI18n = this.interactiveConfig.i18n || {}
+        const userLocale = me.get('preferredLanguage', true) // TODO drive from store
+        const userGeneralLocale = (userLocale || '').split('-')[0]
+        const fallbackLocale = 'en'
+        const userLocaleObject = interactiveConfigI18n[userLocale] || {}
+        const generalLocaleObject = interactiveConfigI18n[userGeneralLocale] || {}
+        const fallbackLocaleObject = interactiveConfigI18n[fallbackLocale] || {}
+        return merge(
+          {},
+          this.interactiveConfig,
+          fallbackLocaleObject,
+          generalLocaleObject,
+          userLocaleObject
+        )
+      },
+
       interactiveComponent () {
-        switch (this.interactive.interactiveType) {
+        switch (this.currentInteractive.interactiveType) {
         case 'draggable-statement-completion':
           return draggableStatementCompletionComponent
 
@@ -67,31 +107,32 @@
     },
 
     methods: {
+      ...mapActions('interactives', [
+        'loadInteractive',
+        'loadInteractiveSession'
+      ]),
+
       onCompleted () {
         this.$emit('completed')
       },
 
       async getInteractiveData () {
         this.loading = true
-
         try {
-          this.interactive = await getInteractive(this.interactiveIdOrSlug)
-          this.interactiveType = this.interactive.interactiveType
-          if (!this.interactiveType) {
-            return Promise.reject('Interactive type is not set for the interactive ' + this.interactiveIdOrSlug)
-          }
-          if (!me.isSessionless()) { // not saving progress/session for teachers
-            const getSessionOptions = {
+          const interactivePromise = this.loadInteractive(this.interactiveIdOrSlug)
+          const interactiveSessionPromise = this.loadInteractiveSession({
+            interactiveIdOrSlug: this.interactiveIdOrSlug,
+            sessionOptions: {
               codeLanguage: this.codeLanguage
             }
-            // TODO: throws error regarding intro and language session
-            this.interactiveSession = await getSession(this.interactiveIdOrSlug, getSessionOptions)
-          }
+          })
+          await interactivePromise
+          await interactiveSessionPromise
+
         } catch (err) {
+          // TODO handle_error_ozaria
           console.error('Error:', err)
-          return noty({ text: 'Error occured in creating interactives data.', type: 'error', timeout: '2000' })
-        } finally {
-          this.loading = false
+          return noty({ text: 'Error occured in fetching interactives data.', type: 'error', timeout: '2000' })
         }
       }
     }
@@ -100,15 +141,16 @@
 
 <template>
   <div class="interactive-container">
-    <h1 v-if="loading">
+    <h1 v-if="currentInteractiveDataLoading">
       LOADING
     </h1>
 
     <component
       :is="interactiveComponent"
       v-else
-      :interactive="interactive"
-      :interactive-session="interactiveSession"
+      :interactive="currentInteractive"
+      :localized-interactive-config="localizedInteractiveConfig"
+      :interactive-session="currentInteractiveSession"
       :code-language="codeLanguage"
       @completed="onCompleted"
     />

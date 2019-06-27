@@ -15,6 +15,11 @@
       value: {
         type: Array,
         default: () => ([])
+      },
+
+      labels: {
+        type: Array,
+        default: () => ([])
       }
     },
 
@@ -42,10 +47,10 @@
       :key="i"
 
       v-model="slotData[i]"
-
       :draggable-group="draggableGroup"
-
       class="draggable-slot"
+
+      :label-text="labels[i] || ''"
 
       @change="changed"
     />
@@ -55,31 +60,23 @@
 <style scoped lang="scss">
   .ordering-slots-container {
     width: 25%;
-
     display: flex;
     flex-direction: column;
-
     align-items: center;
     justify-content: space-evenly;
-
     /deep/ .draggable-slot {
       height: 55px;
       border: 1px solid black;
-
       padding: 0;
-
       width: 100%;
-
       ul {
         width: 100%;
-
         li {
           text-align: center;
         }
       }
     }
   }
-
   .ordering-slot li {
     width: 100%;
     height: 100%;

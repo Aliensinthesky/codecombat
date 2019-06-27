@@ -15,6 +15,11 @@
         required: true
       },
 
+      localizedInteractiveConfig: {
+        type: Object,
+        required: true
+      },
+
       interactiveSession: {
         type: Object,
         default: undefined
@@ -29,13 +34,13 @@
       return {
         draggableGroup: Math.random().toString(),
 
-        promptSlots: [
-          { id: 1, text: 'one option' },
-          { id: 2, text: 'two option' },
-          { id: 3, text: 'three option' },
-          { id: 4, text: 'four option' }
-        ],
+        promptSlots: (this.localizedInteractiveConfig.elements || [])
+          .map(({ elementId, text }) => ({
+            id: elementId,
+            text
+          })),
 
+        // FIXME ANDREW THESE SHOULD HAVE LABELS OF ANSWER
         answerSlots: (new Array(4)).fill(undefined)
       }
     },
@@ -73,6 +78,7 @@
         :draggable-group="draggableGroup"
 
         class="ordering-column"
+        :labels="localizedInteractiveConfig.labels"
       />
 
       <div class="art-container">
