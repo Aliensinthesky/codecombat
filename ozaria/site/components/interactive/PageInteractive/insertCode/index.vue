@@ -7,7 +7,7 @@
   import 'codemirror/lib/codemirror.css'
 
   import BaseInteractiveTitle from '../common/BaseInteractiveTitle'
-
+  const toUriFilePath = asset => encodeURI(`/file/${asset}`)
   export default {
     components: {
       codemirror,
@@ -40,6 +40,7 @@
       // selectedAnswer starts with the `lineToReplace` line from SAMPLE_CODE.
       // TODO handle_error_ozaria - this can crash with invalid input.
       const startingLine = this.localizedInteractiveConfig.starterCode.trim().split('\n')[this.localizedInteractiveConfig.lineToReplace-1].trim()
+      const defaultImage = toUriFilePath(this.interactive.defaultArtAsset)
       return {
         codemirrorReady: false,
 
@@ -50,7 +51,7 @@
           readOnly: 'nocursor'
         },
 
-        selectedAnswer: { id: -1, text: startingLine }
+        selectedAnswer: { id: -1, text: startingLine, triggerArt: defaultImage}
       }
     },
 
@@ -96,7 +97,10 @@
 
     methods: {
       selectAnswer (answer) {
-        this.selectedAnswer = answer
+        this.selectedAnswer = {
+          ...answer,
+          triggerArt: toUriFilePath(answer.triggerArt)
+        }
       },
 
       onCodeMirrorReady () {
@@ -149,7 +153,7 @@
 
       <div class="art-container">
         <img
-          src="https://codecombat.com/images/pages/home/built_for_teachers1.png"
+          :src="this.selectedAnswer.triggerArt"
           alt="Art!"
         >
       </div>
