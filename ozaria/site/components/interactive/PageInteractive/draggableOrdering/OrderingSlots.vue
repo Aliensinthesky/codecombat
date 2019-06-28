@@ -14,11 +14,9 @@
   <div class="ordering-slots-container">
     <ul
       v-for="label in labels"
-      :key="label"
+      :key="label.text"
 
-      class="draggable-slot"
-
-      @change="changed"
+      class="label-slot"
     >
       <li>{{ label.text }}</li>
     </ul>
@@ -32,7 +30,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: space-evenly;
-    /deep/ .draggable-slot {
+    /deep/ .label-slot {
       height: 55px;
       background-color: #dddddd;
       padding: 0;

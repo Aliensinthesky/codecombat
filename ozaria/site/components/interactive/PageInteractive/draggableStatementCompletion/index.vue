@@ -87,7 +87,7 @@
         :draggable-group="draggableGroup"
 
         class="slot"
-        :label-text="answerSlotLabels[i].text || ''"
+        :label-text="(answerSlotLabels[i] || {}).text || ''"
       />
     </div>
   </div>

@@ -2,82 +2,152 @@
 import { mount } from '@vue/test-utils'
 import pageInteractive from 'ozaria/site/components/interactive/PageInteractive/index'
 import factories from 'test/app/factories'
-import * as interactiveApi from 'ozaria/site/api/interactive'
 import draggableOrderingComponent from 'ozaria/site/components/interactive/PageInteractive/draggableOrdering/index'
-import inserCodeComponent from 'ozaria/site/components/interactive/PageInteractive/insertCode'
+import insertCodeComponent from 'ozaria/site/components/interactive/PageInteractive/insertCode'
 import draggableStatementCompletionComponent from 'ozaria/site/components/interactive/PageInteractive/draggableStatementCompletion/index'
-
-const createComponent = (values = {}) => {
-  return mount(pageInteractive, {
-    propsData: values
-  })
-}
 
 const interactive = {
   interactiveType: 'draggable-ordering',
   promptText: 'Interactive prompt text',
-  _id: 'interactiveId1'
+  _id: 'interactiveId1',
+
+  // Have all data options available chosen by type.
+  draggableStatementCompletionData: {
+    elements: [
+      {
+        textStyleCode: true,
+        text: 'Something',
+        elementId: '5d12b22025196e3473b88b8e'
+      }
+    ],
+    labels: [
+      {
+        text: 'label 1'
+      }
+    ]
+  },
+  insertCodeData: {
+    starterCode: 'some code\nline2\nline3\nline4',
+    lineToReplace: 2
+  },
+  draggableOrderingData: {
+    elements: [
+      {
+        text: 'Something',
+        elementId: '5d12b22025196e3473b88b8e'
+      }
+    ],
+    labels: [
+      {
+        text: 'label 1'
+      }
+    ]
+  }
 }
 
-const introLevel = {
-  _id: 'intro-level-id'
-} // Dummy intro level object
+const store = new Vuex.Store({
+  modules: {
+    interactives: {
+      namespaced: true,
 
-let pageInteractiveWrapper
+      mutations: {
+        toggleInteractiveLoading () { },
+
+        toggleInteractiveSessionLoading () { },
+
+        addInteractive () { },
+
+        addInteractiveSession () { }
+      },
+
+      getters: {
+        currentInteractiveDataLoading () {
+          return false
+        },
+
+        currentInteractive () {
+          return interactive
+        },
+
+        currentInteractiveSession () {
+          return {}
+        }
+      },
+
+      actions: {
+        async loadInteractive () { },
+
+        async loadInteractiveSession () { }
+      }
+    }
+  }
+})
+
+const createComponent = (values = {}) => {
+  return mount(pageInteractive, {
+    propsData: values,
+    store
+  })
+}
 
 describe('Interactive Page', () => {
-  beforeEach((done) => {
-    spyOn(interactiveApi, 'getInteractive').and.returnValue(Promise.resolve(interactive))
-    spyOn(interactiveApi, 'getSession').and.returnValue(Promise.resolve({}))
-    me.set(factories.makeUser({ permissions: ['admin'] }).attributes)
-    pageInteractiveWrapper = createComponent({ interactiveIdOrSlug: interactive._id, introLevelId: introLevel._id })
-    _.defer(done)
-  })
-  it('renders a vue instance', () => {
-    expect(pageInteractiveWrapper.isVueInstance()).toBe(true)
-  })
+  describe('Default functionality', () => {
+    let pageInteractiveWrapper
+    beforeEach((done) => {
+      me.set(factories.makeUser({ permissions: ['admin'] }).attributes)
+      _.defer(done)
+    })
 
-  it('emits `completed` event on completion of child component', () => {
-    const childComponent = pageInteractiveWrapper.find(draggableOrderingComponent)
-    childComponent.vm.$emit('completed')
-    expect(pageInteractiveWrapper.emitted().completed).toBeTruthy()
-  })
+    it('renders a vue instance', () => {
+      pageInteractiveWrapper = createComponent({ interactiveIdOrSlug: interactive._id })
+      expect(pageInteractiveWrapper.isVueInstance()).toBe(true)
+    })
 
+    it('emits `completed` event on completion of child component', () => {
+      pageInteractiveWrapper = createComponent({ interactiveIdOrSlug: interactive._id })
+      const childComponent = pageInteractiveWrapper.find(draggableOrderingComponent)
+      childComponent.vm.$emit('completed')
+      expect(pageInteractiveWrapper.emitted().completed).toBeTruthy()
+    })
+  })
   describe('renders draggable-ordering component for interactive type draggable-ordering', () => {
+    let pageInteractiveWrapper
     beforeEach((done) => {
       interactive.interactiveType = 'draggable-ordering'
-      pageInteractiveWrapper = createComponent({ interactiveIdOrSlug: interactive._id, introLevelId: introLevel._id })
+      pageInteractiveWrapper = createComponent({ interactiveIdOrSlug: interactive._id })
       _.defer(done)
     })
     it('renders correct component', () => {
       expect(pageInteractiveWrapper.contains(draggableOrderingComponent)).toBe(true)
-      expect(pageInteractiveWrapper.contains(inserCodeComponent)).toBe(false)
+      expect(pageInteractiveWrapper.contains(insertCodeComponent)).toBe(false)
       expect(pageInteractiveWrapper.contains(draggableStatementCompletionComponent)).toBe(false)
     })
   })
 
   describe('renders insert-code component for interactive type insert-code', () => {
+    let pageInteractiveWrapper
     beforeEach((done) => {
       interactive.interactiveType = 'insert-code'
-      pageInteractiveWrapper = createComponent({ interactiveIdOrSlug: interactive._id, introLevelId: introLevel._id })
+      pageInteractiveWrapper = createComponent({ interactiveIdOrSlug: interactive._id })
       _.defer(done)
     })
     it('renders correct component', () => {
       expect(pageInteractiveWrapper.contains(draggableOrderingComponent)).toBe(false)
-      expect(pageInteractiveWrapper.contains(inserCodeComponent)).toBe(true)
+      expect(pageInteractiveWrapper.contains(insertCodeComponent)).toBe(true)
       expect(pageInteractiveWrapper.contains(draggableStatementCompletionComponent)).toBe(false)
     })
   })
 
   describe('renders draggable-statement-completion component for interactive type draggable-statement-completion', () => {
+    let pageInteractiveWrapper
     beforeEach((done) => {
       interactive.interactiveType = 'draggable-statement-completion'
-      pageInteractiveWrapper = createComponent({ interactiveIdOrSlug: interactive._id, introLevelId: introLevel._id })
+      pageInteractiveWrapper = createComponent({ interactiveIdOrSlug: interactive._id })
       _.defer(done)
     })
     it('renders correct component', () => {
       expect(pageInteractiveWrapper.contains(draggableOrderingComponent)).toBe(false)
-      expect(pageInteractiveWrapper.contains(inserCodeComponent)).toBe(false)
+      expect(pageInteractiveWrapper.contains(insertCodeComponent)).toBe(false)
       expect(pageInteractiveWrapper.contains(draggableStatementCompletionComponent)).toBe(true)
     })
   })
