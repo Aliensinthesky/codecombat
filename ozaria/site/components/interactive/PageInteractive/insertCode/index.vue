@@ -1,17 +1,24 @@
 <script>
   import { codemirror } from 'vue-codemirror'
-
+  import { putSession } from 'ozaria/site/api/interactive'
   // TODO dynamically import these
   import 'codemirror/mode/javascript/javascript'
   import 'codemirror/mode/python/python'
   import 'codemirror/lib/codemirror.css'
 
   import BaseInteractiveTitle from '../common/BaseInteractiveTitle'
+  import BaseButton from '../common/BaseButton'
+  import ModalInteractive from '../common/ModalInteractive.vue'
+
+  const DEFAULT_ID = '-1'
+
   const toUriFilePath = asset => encodeURI(`/file/${asset}`)
   export default {
     components: {
       codemirror,
-      'base-interactive-title': BaseInteractiveTitle
+      'base-interactive-title': BaseInteractiveTitle,
+      'base-button': BaseButton,
+      'modal-interactive': ModalInteractive
     },
 
     props: {
@@ -37,10 +44,11 @@
 
     data () {
       const language = (this.codeLanguage || "").toLowerCase() === 'javascript' ? 'javascript' : 'python'
-      // selectedAnswer starts with the `lineToReplace` line from SAMPLE_CODE.
       // TODO handle_error_ozaria - this can crash with invalid input.
       const startingLine = this.localizedInteractiveConfig.starterCode.trim().split('\n')[this.localizedInteractiveConfig.lineToReplace-1].trim()
       const defaultImage = toUriFilePath(this.interactive.defaultArtAsset)
+
+      const defaultSelectedAnswer = { id: DEFAULT_ID, text: startingLine, triggerArt: defaultImage }
       return {
         codemirrorReady: false,
 
@@ -51,8 +59,14 @@
           readOnly: 'nocursor'
         },
 
-        selectedAnswer: { id: -1, text: startingLine, triggerArt: defaultImage}
+        selectedAnswer: defaultSelectedAnswer,
+
+        displayModal: false
       }
+    },
+
+    mounted () {
+      this.stateFromCompleteSession()
     },
 
     computed: {
@@ -86,12 +100,19 @@
 
       codemirror () {
         return this.$refs.codeMirrorComponent.codemirror
+      },
+
+      solution () {
+        return {
+          correct: this.localizedInteractiveConfig.solution === this.selectedAnswer.choiceId,
+          submittedSolution: this.selectedAnswer.choiceId
+        }
       }
     },
 
     watch: {
       selectedAnswer () {
-        this.updateHighlightedLine()
+        setTimeout(() => this.updateHighlightedLine(), 10)
       }
     },
 
@@ -109,15 +130,53 @@
       },
 
       updateHighlightedLine () {
-        // FIXME: This method doesn't seem to work at all. Line style is not applied.
         if (!this.codemirrorReady) {
           return
         }
-        if (!this.selectedAnswer || this.selectedAnswer.id !== -1) {
-          this.codemirror.addLineClass(this.localizedInteractiveConfig.lineToReplace, 'background', 'highlight-line')
+        if (this.selectedAnswer.id !== DEFAULT_ID) {
+          this.codemirror.addLineClass(this.localizedInteractiveConfig.lineToReplace-1, 'background', 'highlight-line')
         } else {
-          this.codemirror.removeLineClass(this.localizedInteractiveConfig.lineToReplace, 'background', 'highlight-line')
+          this.codemirror.removeLineClass(this.localizedInteractiveConfig.lineToReplace-1, 'background', 'highlight-line')
         }
+      },
+
+      submitSolution () {
+        this.displayModal = true
+      },
+
+      async closeModal () {
+        if (this.solution.submittedSolution === DEFAULT_ID) {
+          return
+        }
+
+        await putSession(this.interactive._id, {
+          json: {
+            codeLanguage: this.codeLanguage,
+            submission: this.solution
+          }
+        })
+        if (this.solution.correct) {
+          this.$emit('completed')
+        } else {
+          // Reset component to base state
+          Object.assign(this.$data, this.$options.data.apply(this))
+          this.stateFromCompleteSession()
+        }
+        this.displayModal = false
+      },
+
+      stateFromCompleteSession () {
+        const correctSubmissionId = ((this.interactiveSession || {}).submissions || []).find(({ correct }) => correct)
+        if (!(correctSubmissionId || {}).submittedSolution) {
+          return
+        }
+
+        const answer = this.localizedInteractiveConfig.choices.find(({ choiceId }) => choiceId === correctSubmissionId.submittedSolution)
+        if (!answer) {
+          console.warn('Session answer id doesn\'t match given choices. Proceeding without setting session state.')
+          return
+        }
+        this.selectAnswer(answer)
       }
     }
   }
@@ -149,6 +208,11 @@
 
           @ready="onCodeMirrorReady"
         />
+        <base-button
+          :onClick="submitSolution"
+          text="Submit"
+        >
+        </base-button>
       </div>
 
       <div class="art-container">
@@ -157,6 +221,16 @@
           alt="Art!"
         >
       </div>
+    </div>
+    <div v-if="displayModal">
+      <modal-interactive
+        @close="closeModal"
+      >
+    <template v-slot:body>
+      <h1>{{solution.correct ? "Did it!" : "Try Again!"}}</h1>
+    </template>
+
+      </modal-interactive>
     </div>
   </div>
 </template>
